@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.py[cod]
+build/
+dist/
+*.spec
+*.sqlite
+*.sqlite3
+*.db
+Evidencia/
+BaseDatos/
+Matriz_Alertas_INVIMA_ACTUALIZADA.xlsx
