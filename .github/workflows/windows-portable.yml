@@ -1,0 +1,64 @@
+name: Windows portable
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: windows-portable-main
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Preparar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar dependencias
+        run: python -m pip install -r requirements.txt pyinstaller
+
+      - name: Crear ejecutable portable
+        shell: cmd
+        run: >-
+          python -m PyInstaller --noconfirm --clean --onefile --windowed
+          --name SIGAVI
+          --add-data "2026 - Propuesta Formato de Control y Seguimiento de Alertas Sanitarias SIGAVI.xlsx;."
+          app.py
+
+      - name: Empaquetar ZIP
+        shell: pwsh
+        run: Compress-Archive -Path dist/SIGAVI.exe -DestinationPath dist/SIGAVI-portable.zip -Force
+
+      - name: Instalar Inno Setup
+        shell: pwsh
+        run: choco install innosetup --yes --no-progress
+
+      - name: Crear instalador
+        shell: pwsh
+        run: '& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /Qp SIGAVI.iss'
+
+      - name: Publicar versión de prueba
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release view pruebas 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create pruebas --target $env:GITHUB_SHA --title "SIGAVI - versión de prueba" --notes "Instalador y versión portable generados automáticamente desde la rama main." --prerelease
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          gh release upload pruebas dist/SIGAVI-portable.zip --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release upload pruebas dist/SIGAVI-Setup.exe --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

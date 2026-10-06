@@ -217,6 +217,7 @@ class MatrixWriter:
 
         to_add: list[dict[str, Any]] = []
         ids_to_rows: dict[int, int] = {}
+        links_repaired = False
         queued_keys: set[tuple[str, str, str, str]] = set()
         queued_aliases: dict[tuple[str, str, str, str], list[int]] = {}
         skipped = 0
@@ -231,6 +232,17 @@ class MatrixWriter:
                         break
             if existing_row:
                 skipped += 1
+                # Older matrix copies may have the URL text but lack an actual
+                # Excel hyperlink. Repair both the displayed value and target.
+                pdf_url = record.get("pdf_url") or record.get("alert_url")
+                if pdf_url:
+                    link_cell = sheet.cell(existing_row, 5)
+                    if link_cell.value in (None, ""):
+                        link_cell.value = pdf_url
+                        links_repaired = True
+                    if not link_cell.hyperlink or link_cell.hyperlink.target != pdf_url:
+                        link_cell.hyperlink = pdf_url
+                        links_repaired = True
                 if record.get("id") is not None:
                     ids_to_rows[int(record["id"])] = existing_row
                 continue
@@ -242,7 +254,7 @@ class MatrixWriter:
             queued_keys.add(key)
             to_add.append(record)
 
-        if not to_add:
+        if not to_add and not links_repaired:
             workbook.close()
             output_worksheet_part = _worksheet_part(self.output_path, SHEET_NAME)
             if output_worksheet_part:
@@ -257,6 +269,30 @@ class MatrixWriter:
                     )
                 except Exception as exc:
                     raise MatrixError(f"No se pudieron conservar las validaciones especiales de Excel: {exc}") from exc
+            return ids_to_rows, 0, skipped
+
+        if not to_add:
+            # Save repairs for rows already present in the destination workbook.
+            with NamedTemporaryFile(prefix="sigavi-matrix-", suffix=".xlsx", dir=self.output_path.parent, delete=False) as handle:
+                temp_path = Path(handle.name)
+            try:
+                workbook.save(temp_path)
+                workbook.close()
+                output_worksheet_part = _worksheet_part(temp_path, SHEET_NAME)
+                if not output_worksheet_part:
+                    raise MatrixError("No se pudo identificar la hoja objetivo en la copia XLSX guardada.")
+                _preserve_template_extensions(
+                    self.template_path,
+                    temp_path,
+                    template_worksheet_part,
+                    output_worksheet_part,
+                    max([body_end, *ids_to_rows.values()]),
+                )
+                temp_path.replace(self.output_path)
+            except Exception:
+                workbook.close()
+                temp_path.unlink(missing_ok=True)
+                raise
             return ids_to_rows, 0, skipped
 
         # Reuse the workbook's preformatted blank rows first; rows with only the

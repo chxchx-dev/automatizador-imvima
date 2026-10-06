@@ -2,6 +2,21 @@
 
 Aplicación de escritorio en Python para vigilar alertas sanitarias del INVIMA, guardar sus PDF como evidencia, extraer datos, registrar el proceso en SQLite y sincronizar novedades con una copia de la matriz institucional.
 
+## Descargar y probar en Windows
+
+Elige una opción:
+
+- **[Descargar instalador de Windows](https://github.com/chxchx-dev/automatizador-imvima/releases/download/pruebas/SIGAVI-Setup.exe)**: recomendado para la mayoría. Instálalo y abre SIGAVI desde el menú Inicio.
+- **[Descargar SIGAVI portable (ZIP)](https://github.com/chxchx-dev/automatizador-imvima/releases/download/pruebas/SIGAVI-portable.zip)**: extrae el ZIP y ejecuta `SIGAVI.exe`; no requiere instalación.
+
+Después de instalar o extraer la versión portable, abre SIGAVI, revisa en **Configuración** la plantilla y la carpeta donde se guardarán los datos, y pulsa **ACTUALIZAR ALERTAS INVIMA**. Se necesita conexión a Internet para consultar INVIMA y descargar documentos. No requiere instalar Python.
+
+El ejecutable no contiene datos personales. La base de datos, los PDF descargados, los registros de actividad y la matriz Excel se guardan por defecto en `%LOCALAPPDATA%\SIGAVI`. Para probar una versión nueva, cierra SIGAVI, descarga y extrae el ejecutable actualizado; los datos existentes se conservan.
+
+Los enlaces corresponden a la versión de prueba más reciente. GitHub actualiza ambos archivos al compilar los cambios de `main`. Si todavía no están disponibles, abre [Actions](https://github.com/chxchx-dev/automatizador-imvima/actions), espera a que termine **Windows portable** y vuelve a intentarlo.
+
+Al probarla, comparte qué estabas haciendo, qué esperabas que ocurriera y el mensaje de error si aparece. El registro técnico está en `%LOCALAPPDATA%\SIGAVI\logs\sigavi.log`.
+
 ## Flujo de actualización
 
 **ACTUALIZAR ALERTAS INVIMA** ejecuta este flujo:
@@ -53,7 +68,7 @@ Las rutas se pueden cambiar desde **Configuración**. Los campos `SERVICIO QUE U
 
 ## Crear el ejecutable
 
-En Windows, con el código y la plantilla en la misma carpeta, ejecuta `compilar_windows.bat`. El resultado se guarda en `dist\SIGAVI.exe`. El ejecutable y los archivos de datos son independientes: SQLite, PDFs y la matriz se escriben en la carpeta local elegida por la persona usuaria.
+En Windows, con el código y la plantilla en la misma carpeta, ejecuta `compilar_windows.bat`. Se generan `dist\SIGAVI.exe` y `dist\SIGAVI-portable.zip`. El ZIP contiene el ejecutable de un solo archivo y la plantilla está incluida dentro de él. GitHub Actions también genera `SIGAVI-Setup.exe` con el mismo ejecutable y plantilla. SQLite, PDFs y la matriz se guardan aparte en la carpeta local elegida por la persona usuaria.
 
 ## Alcance
 
